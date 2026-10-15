@@ -11,8 +11,8 @@ import '../widgets/mensagem.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
 
-/// Funcionalidade: minha agenda (ListView) — próximos horários com opção de
-/// cancelar e o histórico com avaliações.
+/// Funcionalidade: minha agenda (ListView)
+/// Cancelamento e histórico do agendadamento
 class AgendamentosView extends StatelessWidget {
   const AgendamentosView({super.key});
 

@@ -14,8 +14,8 @@ import '../widgets/hud.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
 
-/// Funcionalidade: agendar horário — escolher barbeiro, serviço, dia da
-/// semana e horário livre.
+/// Funcionalidade: agendar horário — escolher barbeiro, 
+/// serviço, dia da semana e horário livre.
 class AgendarView extends StatelessWidget {
   const AgendarView({super.key});
 
@@ -132,7 +132,7 @@ class _Opcao extends StatelessWidget {
   }
 }
 
-/// Deixa a foto em tons de cinza quando o barbeiro não faz o serviço.
+/// Foto em tons de cinza quando o barbeiro não faz o serviço.
 const _cinza = ColorFilter.matrix([
   0.2126, 0.7152, 0.0722, 0, 0,
   0.2126, 0.7152, 0.0722, 0, 0,

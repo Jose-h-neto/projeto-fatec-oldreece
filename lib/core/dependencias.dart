@@ -14,7 +14,6 @@ import '../controller/sobre_controller.dart';
 final g = GetIt.instance;
 
 void configurarDependencias() {
-  // AuthController primeiro: os outros dependem dele.
   g.registerSingleton<AuthController>(AuthController());
 
   g.registerSingleton<CadastrarUsuarioController>(CadastrarUsuarioController());

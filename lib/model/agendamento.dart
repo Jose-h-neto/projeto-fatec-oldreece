@@ -41,7 +41,7 @@ class Agendamento {
     this.comentario,
   });
 
-  factory Agendamento.fromMap(String id, Map<String, dynamic> dados) =>
+  factory Agendamento.fromJson(String id, Map<String, dynamic> dados) =>
       Agendamento(
         id: id,
         barbeiroId: dados['barbeiroId'] as String,
@@ -56,7 +56,7 @@ class Agendamento {
         comentario: dados['comentario'] as String?,
       );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
     'barbeiroId': barbeiroId,
     'barbeiroNome': barbeiroNome,
     'barbeiroFoto': barbeiroFoto,

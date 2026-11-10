@@ -66,6 +66,8 @@ void main() {
         .doc('horarios_ocupados/${novo.horarioId}')
         .get();
     expect(reserva.data(), containsPair('uid', 'cj'));
+    expect(reserva.data(), containsPair('agendamentoId', novo.id));
+    expect(reserva.data(), hasLength(5));
     expect(await ctrl.horasOcupadas(barbeiro, dia).first, {10});
   });
 
@@ -128,7 +130,7 @@ void main() {
     );
     await firestore
         .doc('usuarios/cj/agendamentos/antigo')
-        .set(antigo.toMap());
+        .set(antigo.toJson());
     expect(antigo.podeAvaliar, isTrue);
 
     expect(await ctrl.avaliar(antigo, 5, '   '), isNull);

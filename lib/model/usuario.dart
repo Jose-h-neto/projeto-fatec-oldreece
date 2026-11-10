@@ -19,7 +19,7 @@ class Usuario {
     required this.cidade,
   });
 
-  factory Usuario.fromMap(String uid, Map<String, dynamic> dados) => Usuario(
+  factory Usuario.fromJson(String uid, Map<String, dynamic> dados) => Usuario(
     uid: uid,
     nome: dados['nome'] as String,
     email: dados['email'] as String,
@@ -29,7 +29,7 @@ class Usuario {
     cidade: dados['cidade'] as String,
   );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
     'nome': nome,
     'email': email,
     'telefone': telefone,

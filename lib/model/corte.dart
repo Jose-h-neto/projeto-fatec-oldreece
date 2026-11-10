@@ -27,7 +27,7 @@ class Corte {
     this.destaque = false,
   });
 
-  factory Corte.fromMap(String id, Map<String, dynamic> dados) => Corte(
+  factory Corte.fromJson(String id, Map<String, dynamic> dados) => Corte(
     id: id,
     nome: dados['nome'] as String,
     descricao: dados['descricao'] as String,
@@ -38,7 +38,7 @@ class Corte {
     destaque: dados['destaque'] as bool? ?? false,
   );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
     'nome': nome,
     'descricao': descricao,
     'imagem': imagem,

@@ -17,7 +17,7 @@ class CorteController extends ChangeNotifier {
       .snapshots()
       .map(
         (consulta) => consulta.docs
-            .map((doc) => Corte.fromMap(doc.id, doc.data()))
+            .map((doc) => Corte.fromJson(doc.id, doc.data()))
             .toList(),
       );
 

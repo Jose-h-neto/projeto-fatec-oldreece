@@ -43,7 +43,7 @@ firebase deploy --only hosting,firestore:rules
 | `usuarios/{uid}/agendamentos` | barbeiro, corte, preço, data, cancelado, avaliação, comentário | Só o próprio usuário |
 | `barbeiros` | nome, foto, especialidade, bio, frase, estrelas, experiência, dias, cortes | Leitura para quem está logado |
 | `cortes` | nome, descrição, imagem, preço, duração, categoria, destaque | Leitura para quem está logado |
-| `horarios_ocupados` | barbeiro, dia, hora e uid de quem reservou, sem dados pessoais | Leitura para quem está logado; cada um só apaga a própria reserva |
+| `horarios_ocupados` | barbeiro, dia, hora, uid de quem reservou e id do agendamento, sem dados pessoais | Leitura para quem está logado; cada um só apaga a própria reserva |
 
 Cada reserva usa o id `barbeiro_dia_hora`. O agendamento e a reserva são gravados numa transação, então dois clientes não conseguem pegar o mesmo horário. O conteúdo do catálogo também está em `test/dados_teste.dart`.
 

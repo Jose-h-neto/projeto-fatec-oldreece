@@ -31,7 +31,7 @@ class AuthController extends ChangeNotifier {
         code: 'perfil-nao-encontrado',
       );
     }
-    return Usuario.fromMap(uid, dados);
+    return Usuario.fromJson(uid, dados);
   }
 
   /// Recupera a sessão salva pelo Firebase ao abrir o app. Sem conexão, o app
@@ -88,7 +88,7 @@ class AuthController extends ChangeNotifier {
 
     try {
       await _documento(novo.uid).set({
-        ...novo.toMap(),
+        ...novo.toJson(),
         'criadoEm': FieldValue.serverTimestamp(),
       });
     } on Exception {

@@ -35,7 +35,7 @@ class AgendamentoController extends ChangeNotifier {
       .snapshots()
       .map(
         (consulta) => consulta.docs
-            .map((doc) => Agendamento.fromMap(doc.id, doc.data()))
+            .map((doc) => Agendamento.fromJson(doc.id, doc.data()))
             .toList(),
       );
 
@@ -192,9 +192,10 @@ class AgendamentoController extends ChangeNotifier {
           'dia': Agendamento.diaChave(novo.data),
           'hora': novo.data.hour,
           'uid': _auth.usuario!.uid,
+          'agendamentoId': novo.id,
         });
         transacao.set(_meus.doc(novo.id), {
-          ...novo.toMap(),
+          ...novo.toJson(),
           'criadoEm': FieldValue.serverTimestamp(),
         });
       });

@@ -14,7 +14,7 @@ class BarbeiroController extends ChangeNotifier {
       .snapshots()
       .map(
         (consulta) => consulta.docs
-            .map((doc) => Barbeiro.fromMap(doc.id, doc.data()))
+            .map((doc) => Barbeiro.fromJson(doc.id, doc.data()))
             .toList(),
       );
 }

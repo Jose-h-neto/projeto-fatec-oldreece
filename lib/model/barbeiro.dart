@@ -29,7 +29,7 @@ class Barbeiro {
     required this.cortes,
   });
 
-  factory Barbeiro.fromMap(String id, Map<String, dynamic> dados) => Barbeiro(
+  factory Barbeiro.fromJson(String id, Map<String, dynamic> dados) => Barbeiro(
     id: id,
     nome: dados['nome'] as String,
     foto: dados['foto'] as String,
@@ -42,7 +42,7 @@ class Barbeiro {
     cortes: List<String>.from(dados['cortes'] as List),
   );
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toJson() => {
     'nome': nome,
     'foto': foto,
     'especialidade': especialidade,

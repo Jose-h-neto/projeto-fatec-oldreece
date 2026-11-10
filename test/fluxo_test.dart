@@ -20,13 +20,13 @@ import 'dados_teste.dart';
 Future<void> popularCatalogo(FirebaseFirestore firestore) async {
   for (final (i, c) in DadosTeste.cortes.indexed) {
     await firestore.collection('cortes').doc(c.id).set({
-      ...c.toMap(),
+      ...c.toJson(),
       'ordem': i,
     });
   }
   for (final (i, b) in DadosTeste.barbeiros.indexed) {
     await firestore.collection('barbeiros').doc(b.id).set({
-      ...b.toMap(),
+      ...b.toJson(),
       'ordem': i,
     });
   }

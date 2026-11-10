@@ -87,8 +87,9 @@ service cloud.firestore {
     match /horarios_ocupados/{id} {
       allow read: if logado();
       allow create: if logado()
-        && request.resource.data.keys().hasOnly(['barbeiroId', 'dia', 'hora', 'uid'])
+        && request.resource.data.keys().hasOnly(['barbeiroId', 'dia', 'hora', 'uid', 'agendamentoId'])
         && request.resource.data.barbeiroId is string
+        && request.resource.data.agendamentoId is string
         && request.resource.data.dia is string
         && request.resource.data.hora is int
         && request.resource.data.uid == request.auth.uid

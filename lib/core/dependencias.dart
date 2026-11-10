@@ -31,7 +31,6 @@ void configurarDependencias({
     ViaCepService(clienteHttp ?? http.Client()),
   );
 
-  // AuthController primeiro: os outros dependem dele.
   g.registerSingleton<AuthController>(AuthController());
 
   g.registerSingleton<CadastrarUsuarioController>(CadastrarUsuarioController());

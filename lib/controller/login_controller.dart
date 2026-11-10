@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/dependencias.dart';
+import '../core/erros.dart';
 import 'auth_controller.dart';
 
 class LoginController extends ChangeNotifier {
@@ -19,11 +20,15 @@ class LoginController extends ChangeNotifier {
     carregando = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 600));
-    final ok = _auth.entrar(email, senha);
+    String? erro;
+    try {
+      await _auth.entrar(email, senha);
+    } on Exception catch (e) {
+      erro = mensagemDeErro(e);
+    }
 
     carregando = false;
     notifyListeners();
-    return ok ? null : 'E-mail ou senha errados. Tenta de novo, mano.';
+    return erro;
   }
 }

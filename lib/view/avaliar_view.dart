@@ -10,7 +10,7 @@ import '../widgets/mensagem.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
 
-/// Funcionalidade: avaliar o atendimento com 0 a 6 estrelas (como o nível
+/// Funcionalidade: avaliar o atendimento com 1 a 6 estrelas (como o nível
 /// de procurado) e um comentário opcional.
 class AvaliarView extends StatefulWidget {
   final Agendamento agendamento;
@@ -24,6 +24,7 @@ class AvaliarView extends StatefulWidget {
 class _AvaliarViewState extends State<AvaliarView> {
   final _comentario = TextEditingController();
   int _estrelas = 0;
+  bool _enviando = false;
 
   static const _legendas = [
     'Toca nas estrelas pra dar a nota',
@@ -41,12 +42,19 @@ class _AvaliarViewState extends State<AvaliarView> {
     super.dispose();
   }
 
-  void _enviar() {
-    g<AgendamentoController>().avaliar(
+  Future<void> _enviar() async {
+    setState(() => _enviando = true);
+    final erro = await g<AgendamentoController>().avaliar(
       widget.agendamento,
       _estrelas,
       _comentario.text,
     );
+    if (!mounted) return;
+    setState(() => _enviando = false);
+    if (erro != null) {
+      mostrarMensagem(context, erro, erro: true);
+      return;
+    }
     mostrarMensagem(context, 'Valeu pela avaliação!');
     Navigator.pop(context);
   }
@@ -64,14 +72,14 @@ class _AvaliarViewState extends State<AvaliarView> {
             Painel(
               child: Row(
                 children: [
-                  FotoMoldura(a.barbeiro.foto, tamanho: 80),
+                  FotoMoldura(a.barbeiroFoto, tamanho: 80),
                   const SizedBox(width: Espaco.s4),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        TituloZona(a.barbeiro.nome, tamanho: 30),
-                        Text(a.corte.nome, style: Estilos.body),
+                        TituloZona(a.barbeiroNome, tamanho: 30),
+                        Text(a.corteNome, style: Estilos.body),
                         Text(Formatos.dataHora(a.data), style: Estilos.caption),
                       ],
                     ),
@@ -118,6 +126,7 @@ class _AvaliarViewState extends State<AvaliarView> {
             SaBotao.primario(
               rotulo: 'Enviar avaliação',
               icone: Icons.send,
+              carregando: _enviando,
               aoPressionar: _estrelas == 0 ? null : _enviar,
             ),
           ],

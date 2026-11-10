@@ -43,7 +43,7 @@ class _LoginViewState extends State<LoginView> {
     }
 
     g<HomeController>().reiniciar();
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.home, (_) => false);
   }
 
   @override
@@ -140,12 +140,6 @@ class _LoginViewState extends State<LoginView> {
                               child: const Text('CRIAR CONTA'),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: Espaco.s4),
-                        const Text(
-                          'Conta de teste: cj@oldreece.com · 123456',
-                          textAlign: TextAlign.center,
-                          style: Estilos.caption,
                         ),
                       ],
                     ),

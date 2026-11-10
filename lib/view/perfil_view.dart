@@ -26,12 +26,18 @@ class _PerfilViewState extends State<PerfilView> {
   late final _nome = TextEditingController(text: ctrl.nome);
   late final _email = TextEditingController(text: ctrl.email);
   late final _telefone = TextEditingController(text: ctrl.telefone);
+  late final _cep = TextEditingController(text: ctrl.cep);
+  late final _bairro = TextEditingController(text: ctrl.bairro);
+  late final _cidade = TextEditingController(text: ctrl.cidade);
 
   @override
   void dispose() {
     _nome.dispose();
     _email.dispose();
     _telefone.dispose();
+    _cep.dispose();
+    _bairro.dispose();
+    _cidade.dispose();
     super.dispose();
   }
 
@@ -44,8 +50,12 @@ class _PerfilViewState extends State<PerfilView> {
   Future<void> _salvar() async {
     FocusScope.of(context).unfocus();
     if (!_form.currentState!.validate()) return;
-    await ctrl.salvar(_nome.text);
+    final erro = await ctrl.salvar(_nome.text);
     if (!mounted) return;
+    if (erro != null) {
+      mostrarMensagem(context, erro, erro: true);
+      return;
+    }
     mostrarMensagem(context, 'Perfil atualizado.');
   }
 
@@ -58,7 +68,8 @@ class _PerfilViewState extends State<PerfilView> {
       perigo: true,
     );
     if (!ok || !mounted) return;
-    g<AuthController>().sair();
+    await g<AuthController>().sair();
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (_) => false);
   }
 
@@ -117,6 +128,27 @@ class _PerfilViewState extends State<PerfilView> {
                       controller: _telefone,
                       rotulo: 'Telefone',
                       icone: Icons.phone_outlined,
+                      somenteLeitura: true,
+                    ),
+                    const SizedBox(height: Espaco.s4),
+                    CampoTexto(
+                      controller: _cep,
+                      rotulo: 'CEP',
+                      icone: Icons.location_on_outlined,
+                      somenteLeitura: true,
+                    ),
+                    const SizedBox(height: Espaco.s4),
+                    CampoTexto(
+                      controller: _bairro,
+                      rotulo: 'Bairro',
+                      icone: Icons.holiday_village_outlined,
+                      somenteLeitura: true,
+                    ),
+                    const SizedBox(height: Espaco.s4),
+                    CampoTexto(
+                      controller: _cidade,
+                      rotulo: 'Cidade',
+                      icone: Icons.location_city_outlined,
                       somenteLeitura: true,
                     ),
                   ],

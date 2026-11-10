@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../core/dependencias.dart';
-import '../data/dados_mock.dart';
+import '../core/erros.dart';
 import '../model/agendamento.dart';
 import '../model/barbeiro.dart';
 import '../model/corte.dart';
@@ -10,44 +11,70 @@ import 'auth_controller.dart';
 /// Agenda do cliente e o rascunho do agendamento em andamento.
 class AgendamentoController extends ChangeNotifier {
   final _auth = g<AuthController>();
+  final _db = g<FirebaseFirestore>();
 
-  /// Agendamentos por e-mail do usuário.
-  final Map<String, List<Agendamento>> _porUsuario = {
-    'cj@oldreece.com': _historicoDemo(),
-  };
-
-  int _proximoId = 100;
+  /// Horários de funcionamento (almoço ao meio-dia).
+  static const horarios = [9, 10, 11, 13, 14, 15, 16, 17, 18];
 
   // ---------------------------------------------------------------------
   // Agenda
   // ---------------------------------------------------------------------
 
-  List<Agendamento> get _lista =>
-      _porUsuario.putIfAbsent(_auth.usuario?.email ?? '', () => []);
+  /// Agendamentos ficam dentro do documento do usuário, separados por conta.
+  CollectionReference<Map<String, dynamic>> get _meus => _db
+      .collection('usuarios')
+      .doc(_auth.usuario!.uid)
+      .collection('agendamentos');
 
-  List<Agendamento> get proximos =>
-      _lista.where((a) => a.status == StatusAgendamento.agendado).toList()
-        ..sort((a, b) => a.data.compareTo(b.data));
+  DocumentReference<Map<String, dynamic>> _ocupado(String horarioId) =>
+      _db.collection('horarios_ocupados').doc(horarioId);
 
-  List<Agendamento> get historico =>
-      _lista.where((a) => a.status != StatusAgendamento.agendado).toList()
+  /// Agendamentos do usuário logado, atualizados em tempo real.
+  Stream<List<Agendamento>> observar() => _meus
+      .orderBy('data')
+      .snapshots()
+      .map(
+        (consulta) => consulta.docs
+            .map((doc) => Agendamento.fromMap(doc.id, doc.data()))
+            .toList(),
+      );
+
+  List<Agendamento> proximos(List<Agendamento> lista) =>
+      lista.where((a) => a.status == StatusAgendamento.agendado).toList();
+
+  List<Agendamento> historico(List<Agendamento> lista) =>
+      lista.where((a) => a.status != StatusAgendamento.agendado).toList()
         ..sort((a, b) => b.data.compareTo(a.data));
 
-  Agendamento? get proximo => proximos.firstOrNull;
-
-  int get pendentesDeAvaliacao => _lista.where((a) => a.podeAvaliar).length;
-
-  void cancelar(Agendamento agendamento) {
-    agendamento.cancelado = true;
-    notifyListeners();
+  /// Cancela e libera o horário para outros clientes, nas duas coleções de
+  /// uma vez. Retorna a mensagem de erro, ou `null` se deu certo.
+  Future<String?> cancelar(Agendamento agendamento) async {
+    try {
+      final lote = _db.batch()
+        ..update(_meus.doc(agendamento.id), {'cancelado': true})
+        ..delete(_ocupado(agendamento.horarioId));
+      await lote.commit();
+      return null;
+    } on Exception catch (e) {
+      return mensagemDeErro(e);
+    }
   }
 
-  void avaliar(Agendamento agendamento, int estrelas, String comentario) {
-    agendamento.avaliacao = estrelas;
-    agendamento.comentario = comentario.trim().isEmpty
-        ? null
-        : comentario.trim();
-    notifyListeners();
+  /// Salva a nota. Retorna a mensagem de erro, ou `null` se deu certo.
+  Future<String?> avaliar(
+    Agendamento agendamento,
+    int estrelas,
+    String comentario,
+  ) async {
+    try {
+      await _meus.doc(agendamento.id).update({
+        'avaliacao': estrelas,
+        if (comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
+      });
+      return null;
+    } on Exception catch (e) {
+      return mensagemDeErro(e);
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -59,6 +86,9 @@ class AgendamentoController extends ChangeNotifier {
   DateTime? dia;
   int? hora;
   bool salvando = false;
+
+  /// Último agendamento criado por [confirmar].
+  Agendamento? confirmado;
 
   bool get podeConfirmar =>
       barbeiro != null && corte != null && dia != null && hora != null;
@@ -110,82 +140,74 @@ class AgendamentoController extends ChangeNotifier {
     return List.generate(7, (i) => base.add(Duration(days: i)));
   }
 
-  bool horarioLivre(Barbeiro b, DateTime d, int h) {
-    final inicio = DateTime(d.year, d.month, d.day, h);
-    if (!b.atendeNo(d)) return false;
-    if (inicio.isBefore(DateTime.now())) return false;
+  /// Horas já reservadas do barbeiro no dia, por qualquer cliente, atualizadas
+  /// em tempo real. A coleção só guarda o horário, sem dados pessoais.
+  Stream<Set<int>> horasOcupadas(Barbeiro b, DateTime d) => _db
+      .collection('horarios_ocupados')
+      .where('barbeiroId', isEqualTo: b.id)
+      .where('dia', isEqualTo: Agendamento.diaChave(d))
+      .snapshots()
+      .map(
+        (consulta) =>
+            consulta.docs.map((doc) => doc.data()['hora'] as int).toSet(),
+      );
 
-    for (final lista in _porUsuario.values) {
-      for (final a in lista) {
-        if (!a.cancelado && a.barbeiro.id == b.id && a.data == inicio) {
-          return false;
-        }
-      }
+  bool horarioLivre(Barbeiro b, DateTime d, int h, Set<int> ocupadas) {
+    if (!b.atendeNo(d)) return false;
+    if (DateTime(d.year, d.month, d.day, h).isBefore(DateTime.now())) {
+      return false;
     }
-    // Simula a agenda já ocupada por outros clientes da barbearia.
-    final semente = b.id.codeUnits.fold(0, (s, c) => s + c);
-    return (semente + d.day * 7 + d.month + h * 3) % 4 != 0;
+    return !ocupadas.contains(h);
   }
 
-  Future<Agendamento> confirmar() async {
+  /// Reserva o horário e cria o agendamento numa transação: se outro cliente
+  /// reservou antes, nada é gravado. Retorna a mensagem de erro, ou `null` se
+  /// deu certo e o resultado está em [confirmado].
+  Future<String?> confirmar() async {
     salvando = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 700));
     final novo = Agendamento(
-      id: '${_proximoId++}',
-      barbeiro: barbeiro!,
-      corte: corte!,
+      id: _meus.doc().id,
+      barbeiroId: barbeiro!.id,
+      barbeiroNome: barbeiro!.nome,
+      barbeiroFoto: barbeiro!.foto,
+      corteId: corte!.id,
+      corteNome: corte!.nome,
+      preco: corte!.preco,
       data: DateTime(dia!.year, dia!.month, dia!.day, hora!),
     );
-    _lista.add(novo);
+    final ocupado = _ocupado(novo.horarioId);
+
+    String? erro;
+    var horarioTomado = false;
+    try {
+      await _db.runTransaction((transacao) async {
+        if ((await transacao.get(ocupado)).exists) {
+          horarioTomado = true;
+          throw StateError('horário ocupado');
+        }
+        transacao.set(ocupado, {
+          'barbeiroId': novo.barbeiroId,
+          'dia': Agendamento.diaChave(novo.data),
+          'hora': novo.data.hour,
+          'uid': _auth.usuario!.uid,
+        });
+        transacao.set(_meus.doc(novo.id), {
+          ...novo.toMap(),
+          'criadoEm': FieldValue.serverTimestamp(),
+        });
+      });
+      confirmado = novo;
+    } catch (e) {
+      erro = horarioTomado
+          ? 'Esse horário acabou de ser ocupado. Escolhe outro.'
+          : mensagemDeErro(e);
+      if (horarioTomado) hora = null;
+    }
 
     salvando = false;
     notifyListeners();
-    return novo;
-  }
-
-  static List<Agendamento> _historicoDemo() {
-    final hoje = DateTime.now();
-    DateTime atras(int dias, int h) =>
-        DateTime(hoje.year, hoje.month, hoje.day - dias, h);
-
-    return [
-      Agendamento(
-        id: '1',
-        barbeiro: DadosMock.barbeiro('reece'),
-        corte: DadosMock.corte('high_fade'),
-        data: atras(45, 10),
-        avaliacao: 6,
-        comentario: 'Saí na régua, como sempre.',
-      ),
-      Agendamento(
-        id: '2',
-        barbeiro: DadosMock.barbeiro('cesar'),
-        corte: DadosMock.corte('bigode'),
-        data: atras(30, 15),
-        avaliacao: 5,
-      ),
-      Agendamento(
-        id: '3',
-        barbeiro: DadosMock.barbeiro('ryder'),
-        corte: DadosMock.corte('barba'),
-        data: atras(20, 14),
-        cancelado: true,
-      ),
-      Agendamento(
-        id: '4',
-        barbeiro: DadosMock.barbeiro('reece'),
-        corte: DadosMock.corte('high_fade'),
-        data: atras(12, 11),
-        avaliacao: 6,
-      ),
-      Agendamento(
-        id: '5',
-        barbeiro: DadosMock.barbeiro('ryder'),
-        corte: DadosMock.corte('baixo'),
-        data: atras(3, 16),
-      ),
-    ];
+    return erro;
   }
 }

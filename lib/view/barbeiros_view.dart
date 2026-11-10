@@ -5,22 +5,25 @@ import '../core/app_routes.dart';
 import '../core/dependencias.dart';
 import '../core/tema.dart';
 import '../model/barbeiro.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
 import '../widgets/painel.dart';
 
-/// Funcionalidade: lista dos barbeiros (ListView).
+/// Funcionalidade: lista dos barbeiros (ListView), lida em tempo real da
+/// coleção `barbeiros`.
 class BarbeirosView extends StatelessWidget {
   const BarbeirosView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final lista = g<BarbeiroController>().barbeiros;
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(Espaco.s4),
-      itemCount: lista.length,
-      separatorBuilder: (_, _) => const SizedBox(height: Espaco.s3),
-      itemBuilder: (context, i) => _CartaoBarbeiro(lista[i]),
+    return DadosAoVivo<List<Barbeiro>>(
+      consulta: g<BarbeiroController>().observar,
+      construtor: (context, lista) => ListView.separated(
+        padding: const EdgeInsets.all(Espaco.s4),
+        itemCount: lista.length,
+        separatorBuilder: (_, _) => const SizedBox(height: Espaco.s3),
+        itemBuilder: (context, i) => _CartaoBarbeiro(lista[i]),
+      ),
     );
   }
 }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../controller/agendamento_controller.dart';
-import '../controller/barbeiro_controller.dart';
+import '../controller/corte_controller.dart';
 import '../core/app_routes.dart';
 import '../core/dependencias.dart';
 import '../core/formatos.dart';
 import '../core/tema.dart';
 import '../model/barbeiro.dart';
 import '../model/corte.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
@@ -28,7 +29,6 @@ class BarbeiroDetalheView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = barbeiro;
-    final cortes = g<BarbeiroController>().cortesDe(b);
 
     return Scaffold(
       appBar: AppBar(title: Text(b.nome.toUpperCase())),
@@ -62,9 +62,11 @@ class BarbeiroDetalheView extends StatelessWidget {
                   children: [
                     Estrelas(valor: b.estrelas, tamanho: 16),
                     const SizedBox(width: Espaco.s3),
-                    Text(
-                      '${b.anosExperiencia} anos de experiência',
-                      style: Estilos.bodySm,
+                    Expanded(
+                      child: Text(
+                        '${b.anosExperiencia} anos de experiência',
+                        style: Estilos.bodySm,
+                      ),
                     ),
                   ],
                 ),
@@ -75,22 +77,30 @@ class BarbeiroDetalheView extends StatelessWidget {
                 DiasAtendimento(b.diasAtendimento),
                 const SizedBox(height: Espaco.s6),
                 const TituloSecao('Serviços'),
-                Painel(
-                  padding: EdgeInsets.zero,
-                  child: Column(
-                    children: [
-                      for (final c in cortes)
-                        ListTile(
-                          leading: FotoMoldura(c.imagem, tamanho: 44),
-                          title: Text(c.nome),
-                          subtitle: Text(
-                            Formatos.duracao(c.duracaoMin),
-                            style: Estilos.label,
-                          ),
-                          trailing: PrecoHud(c.preco, hud: false, tamanho: 20),
-                          onTap: () => _agendar(context, corte: c),
-                        ),
-                    ],
+                DadosAoVivo<List<Corte>>(
+                  consulta: g<CorteController>().observar,
+                  construtor: (context, cortes) => Painel(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        for (final c in cortes)
+                          if (b.cortes.contains(c.id))
+                            ListTile(
+                              leading: FotoMoldura(c.imagem, tamanho: 44),
+                              title: Text(c.nome),
+                              subtitle: Text(
+                                Formatos.duracao(c.duracaoMin),
+                                style: Estilos.label,
+                              ),
+                              trailing: PrecoHud(
+                                c.preco,
+                                hud: false,
+                                tamanho: 20,
+                              ),
+                              onTap: () => _agendar(context, corte: c),
+                            ),
+                      ],
+                    ),
                   ),
                 ),
               ],

@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function logado() {
+      return request.auth != null;
+    }
+
+    function dono(uid) {
+      return logado() && request.auth.uid == uid;
+    }
+
+    function usuarioValido() {
+      let dados = request.resource.data;
+      return dados.keys().hasOnly(['nome', 'email', 'telefone', 'cep', 'bairro', 'cidade', 'criadoEm'])
+        && dados.nome is string && dados.nome.size() >= 3
+        && dados.email == request.auth.token.email
+        && dados.telefone is string
+        && dados.cep is string
+        && dados.bairro is string
+        && dados.cidade is string
+        && dados.criadoEm == request.time;
+    }
+
+    function agendamentoValido() {
+      let dados = request.resource.data;
+      let campos = ['barbeiroId', 'barbeiroNome', 'barbeiroFoto', 'corteId', 'corteNome', 'preco', 'data', 'cancelado', 'criadoEm'];
+      return dados.keys().hasOnly(campos) && dados.keys().hasAll(campos)
+        && dados.barbeiroId is string
+        && dados.barbeiroNome is string
+        && dados.barbeiroFoto is string
+        && dados.corteId is string
+        && dados.corteNome is string
+        && dados.preco is int
+        && dados.data is timestamp && dados.data > request.time
+        && dados.cancelado == false
+        && dados.criadoEm == request.time;
+    }
+
+    // Só cancela o que ainda não aconteceu e não foi cancelado.
+    function cancelamentoValido() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cancelado'])
+        && request.resource.data.cancelado == true
+        && resource.data.cancelado == false
+        && resource.data.data > request.time;
+    }
+
+    // Só avalia atendimento que já passou, não foi cancelado e não tem nota.
+    function avaliacaoValida() {
+      let dados = request.resource.data;
+      return dados.diff(resource.data).affectedKeys().hasOnly(['avaliacao', 'comentario'])
+        && dados.avaliacao is int && dados.avaliacao >= 1 && dados.avaliacao <= 6
+        && (!('comentario' in dados) || (dados.comentario is string && dados.comentario.size() <= 200))
+        && !('avaliacao' in resource.data)
+        && resource.data.cancelado == false
+        && resource.data.data < request.time;
+    }
+
+    // Dados do cliente: só ele lê, e depois de criado só o nome muda.
+    match /usuarios/{uid} {
+      allow read: if dono(uid);
+      allow create: if dono(uid) && usuarioValido();
+      allow update: if dono(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome'])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() >= 3;
+
+      // Agendamentos do cliente: só ele vê e altera; o histórico não é apagado.
+      match /agendamentos/{id} {
+        allow read: if dono(uid);
+        allow create: if dono(uid) && agendamentoValido();
+        allow update: if dono(uid) && (cancelamentoValido() || avaliacaoValida());
+      }
+    }
+
+    // Catálogo: qualquer cliente logado lê; ninguém altera pelo app.
+    match /barbeiros/{id} {
+      allow read: if logado();
+    }
+
+    match /cortes/{id} {
+      allow read: if logado();
+    }
+
+    // Reserva de cada horário, sem dados pessoais. Só existe "create" e
+    // "delete": sem "update", um horário ocupado não pode ser tomado por outro.
+    match /horarios_ocupados/{id} {
+      allow read: if logado();
+      allow create: if logado()
+        && request.resource.data.keys().hasOnly(['barbeiroId', 'dia', 'hora', 'uid'])
+        && request.resource.data.barbeiroId is string
+        && request.resource.data.dia is string
+        && request.resource.data.hora is int
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.barbeiroId + '_' + request.resource.data.dia + '_' + string(request.resource.data.hora);
+      allow delete: if logado() && resource.data.uid == request.auth.uid;
+    }
+  }
+}

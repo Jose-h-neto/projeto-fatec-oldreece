@@ -126,8 +126,8 @@ class _RecuperarSenhaViewState extends State<RecuperarSenhaView> {
               ),
               const SizedBox(height: Espaco.s2),
               Text(
-                'Mandamos as instruções de redefinição para $email. '
-                'Dá uma olhada na caixa de entrada e no spam.',
+                'Se $email tiver conta, as instruções de redefinição já '
+                'estão a caminho. Dá uma olhada na caixa de entrada e no spam.',
                 textAlign: TextAlign.center,
                 style: Estilos.body,
               ),

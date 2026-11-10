@@ -1,15 +1,20 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../data/dados_mock.dart';
+import '../core/dependencias.dart';
 import '../model/barbeiro.dart';
-import '../model/corte.dart';
 
 class BarbeiroController extends ChangeNotifier {
-  final List<Barbeiro> barbeiros = DadosMock.barbeiros;
+  final _db = g<FirebaseFirestore>();
 
-  List<Corte> cortesDe(Barbeiro barbeiro) =>
-      barbeiro.cortes.map(DadosMock.corte).toList();
-
-  List<Barbeiro> quemFaz(Corte corte) =>
-      barbeiros.where((b) => b.cortes.contains(corte.id)).toList();
+  /// Barbeiros da coleção `barbeiros`, atualizados em tempo real.
+  Stream<List<Barbeiro>> observar() => _db
+      .collection('barbeiros')
+      .orderBy('ordem')
+      .snapshots()
+      .map(
+        (consulta) => consulta.docs
+            .map((doc) => Barbeiro.fromMap(doc.id, doc.data()))
+            .toList(),
+      );
 }

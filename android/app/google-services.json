@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "101026177443",
+    "project_id": "old-reece",
+    "storage_bucket": "old-reece.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:101026177443:android:18b7234265012afea73a16",
+        "android_client_info": {
+          "package_name": "com.example.old_reece"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrtNyMnNrArflG5mMprQTzBtI78d_Y97Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

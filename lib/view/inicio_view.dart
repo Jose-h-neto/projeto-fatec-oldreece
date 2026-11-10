@@ -9,6 +9,8 @@ import '../core/dependencias.dart';
 import '../core/formatos.dart';
 import '../core/tema.dart';
 import '../model/agendamento.dart';
+import '../model/corte.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
@@ -35,41 +37,53 @@ class InicioView extends StatelessWidget {
           ),
           const SizedBox(height: Espaco.s6),
           const TituloSecao('Seu próximo horário'),
-          agenda.proximo == null
-              ? const Painel(
-                  child: Text(
-                    'Nenhum horário marcado ainda.',
-                    style: Estilos.bodySm,
-                  ),
-                )
-              : _ProximoHorario(
-                  agendamento: agenda.proximo!,
-                  aoTocar: () => home.irPara(HomeController.agenda),
-                ),
-          if (agenda.pendentesDeAvaliacao > 0) ...[
-            const SizedBox(height: Espaco.s3),
-            Painel(
-              cor: Cores.goldSoft,
-              corBorda: Cores.gold,
-              aoTocar: () => home.irPara(HomeController.agenda),
-              child: Row(
+          DadosAoVivo<List<Agendamento>>(
+            consulta: agenda.observar,
+            construtor: (context, lista) {
+              final proximo = agenda.proximos(lista).firstOrNull;
+              final pendentes = lista.where((a) => a.podeAvaliar).length;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.star, color: Cores.goldFill),
-                  const SizedBox(width: Espaco.s3),
-                  Expanded(
-                    child: Text(
-                      agenda.pendentesDeAvaliacao == 1
-                          ? '1 atendimento esperando tua avaliação'
-                          : '${agenda.pendentesDeAvaliacao} atendimentos '
-                                'esperando tua avaliação',
-                      style: Estilos.body.copyWith(color: Cores.gold),
+                  proximo == null
+                      ? const Painel(
+                          child: Text(
+                            'Nenhum horário marcado ainda.',
+                            style: Estilos.bodySm,
+                          ),
+                        )
+                      : _ProximoHorario(
+                          agendamento: proximo,
+                          aoTocar: () => home.irPara(HomeController.agenda),
+                        ),
+                  if (pendentes > 0) ...[
+                    const SizedBox(height: Espaco.s3),
+                    Painel(
+                      cor: Cores.goldSoft,
+                      corBorda: Cores.gold,
+                      aoTocar: () => home.irPara(HomeController.agenda),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star, color: Cores.goldFill),
+                          const SizedBox(width: Espaco.s3),
+                          Expanded(
+                            child: Text(
+                              pendentes == 1
+                                  ? '1 atendimento esperando tua avaliação'
+                                  : '$pendentes atendimentos '
+                                        'esperando tua avaliação',
+                              style: Estilos.body.copyWith(color: Cores.gold),
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: Cores.gold),
+                        ],
+                      ),
                     ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Cores.gold),
+                  ],
                 ],
-              ),
-            ),
-          ],
+              );
+            },
+          ),
           const SizedBox(height: Espaco.s4),
           SaBotao.primario(
             rotulo: 'Agendar horário',
@@ -85,37 +99,45 @@ class InicioView extends StatelessWidget {
             acao: 'Ver cortes',
             aoTocarAcao: () => home.irPara(HomeController.cortes),
           ),
-          for (final c in g<CorteController>().destaques) ...[
-            Painel(
-              aoTocar: () {
-                agenda.iniciar(corte: c);
-                Navigator.pushNamed(context, AppRoutes.agendar);
-              },
-              child: Row(
-                children: [
-                  FotoMoldura(c.imagem, tamanho: 56),
-                  const SizedBox(width: Espaco.s3),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          DadosAoVivo<List<Corte>>(
+            consulta: g<CorteController>().observar,
+            construtor: (context, cortes) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final c in cortes.where((c) => c.destaque)) ...[
+                  Painel(
+                    aoTocar: () {
+                      agenda.iniciar(corte: c);
+                      Navigator.pushNamed(context, AppRoutes.agendar);
+                    },
+                    child: Row(
                       children: [
-                        Text(
-                          c.nome.toUpperCase(),
-                          style: Estilos.displayMd.copyWith(fontSize: 22),
+                        FotoMoldura(c.imagem, tamanho: 56),
+                        const SizedBox(width: Espaco.s3),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c.nome.toUpperCase(),
+                                style: Estilos.displayMd.copyWith(fontSize: 22),
+                              ),
+                              Text(
+                                Formatos.duracao(c.duracaoMin),
+                                style: Estilos.label,
+                              ),
+                            ],
+                          ),
                         ),
-                        Text(
-                          Formatos.duracao(c.duracaoMin),
-                          style: Estilos.label,
-                        ),
+                        PrecoHud(c.preco, hud: false, tamanho: 22),
                       ],
                     ),
                   ),
-                  PrecoHud(c.preco, hud: false, tamanho: 22),
+                  const SizedBox(height: Espaco.s3),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(height: Espaco.s3),
-          ],
+          ),
         ],
       ),
     );
@@ -136,7 +158,7 @@ class _ProximoHorario extends StatelessWidget {
       aoTocar: aoTocar,
       child: Row(
         children: [
-          FotoMoldura(a.barbeiro.foto, tamanho: 64),
+          FotoMoldura(a.barbeiroFoto, tamanho: 64),
           const SizedBox(width: Espaco.s3),
           Expanded(
             child: Column(
@@ -147,7 +169,7 @@ class _ProximoHorario extends StatelessWidget {
                   style: Estilos.subtitle.copyWith(color: Cores.gold),
                 ),
                 Text(
-                  '${a.corte.nome} com ${a.barbeiro.nome}',
+                  '${a.corteNome} com ${a.barbeiroNome}',
                   style: Estilos.bodySm,
                 ),
               ],

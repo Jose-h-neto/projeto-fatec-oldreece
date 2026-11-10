@@ -65,7 +65,7 @@ class ConfirmacaoView extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
-                                    FotoMoldura(a.barbeiro.foto, tamanho: 64),
+                                    FotoMoldura(a.barbeiroFoto, tamanho: 64),
                                     const SizedBox(width: Espaco.s3),
                                     Expanded(
                                       child: Column(
@@ -79,8 +79,8 @@ class ConfirmacaoView extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            '${a.corte.nome} com '
-                                            '${a.barbeiro.nome}',
+                                            '${a.corteNome} com '
+                                            '${a.barbeiroNome}',
                                             style: Estilos.body,
                                           ),
                                         ],
@@ -97,7 +97,7 @@ class ConfirmacaoView extends StatelessWidget {
                                         style: Estilos.label,
                                       ),
                                     ),
-                                    PrecoHud(a.corte.preco),
+                                    PrecoHud(a.preco),
                                   ],
                                 ),
                               ],

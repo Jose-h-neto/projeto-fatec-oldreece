@@ -7,7 +7,9 @@ import '../core/app_routes.dart';
 import '../core/dependencias.dart';
 import '../core/formatos.dart';
 import '../core/tema.dart';
+import '../model/barbeiro.dart';
 import '../model/corte.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
@@ -43,18 +45,24 @@ class CortesView extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) => GridView.builder(
-                padding: const EdgeInsets.all(Espaco.s4),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: constraints.maxWidth > 600 ? 3 : 2,
-                  mainAxisSpacing: Espaco.s4,
-                  crossAxisSpacing: Espaco.s4,
-                  mainAxisExtent: 268,
-                ),
-                itemCount: ctrl.cortes.length,
-                itemBuilder: (context, i) => _CartaoCorte(ctrl.cortes[i]),
-              ),
+            child: DadosAoVivo<List<Corte>>(
+              consulta: ctrl.observar,
+              construtor: (context, todos) {
+                final cortes = ctrl.filtrar(todos);
+                return LayoutBuilder(
+                  builder: (context, constraints) => GridView.builder(
+                    padding: const EdgeInsets.all(Espaco.s4),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: constraints.maxWidth > 600 ? 3 : 2,
+                      mainAxisSpacing: Espaco.s4,
+                      crossAxisSpacing: Espaco.s4,
+                      mainAxisExtent: 268,
+                    ),
+                    itemCount: cortes.length,
+                    itemBuilder: (context, i) => _CartaoCorte(cortes[i]),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -77,7 +85,7 @@ class _Filtro extends StatelessWidget {
       child: ChoiceChip(
         label: Text(rotulo.toUpperCase()),
         selected: ctrl.categoria == categoria,
-        onSelected: (_) => ctrl.filtrar(categoria),
+        onSelected: (_) => ctrl.escolherCategoria(categoria),
       ),
     );
   }
@@ -128,8 +136,6 @@ class _CartaoCorte extends StatelessWidget {
 }
 
 void _mostrarDetalhes(BuildContext context, Corte c) {
-  final barbeiros = g<BarbeiroController>().quemFaz(c);
-
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -172,13 +178,17 @@ void _mostrarDetalhes(BuildContext context, Corte c) {
             Text(c.descricao, style: Estilos.body),
             const SizedBox(height: Espaco.s4),
             const TituloSecao('Quem faz'),
-            Wrap(
-              spacing: Espaco.s2,
-              runSpacing: Espaco.s2,
-              children: [
-                for (final b in barbeiros)
-                  Etiqueta(b.nome, tom: TomEtiqueta.grove),
-              ],
+            DadosAoVivo<List<Barbeiro>>(
+              consulta: g<BarbeiroController>().observar,
+              construtor: (context, barbeiros) => Wrap(
+                spacing: Espaco.s2,
+                runSpacing: Espaco.s2,
+                children: [
+                  for (final b in barbeiros)
+                    if (b.cortes.contains(c.id))
+                      Etiqueta(b.nome, tom: TomEtiqueta.grove),
+                ],
+              ),
             ),
             const SizedBox(height: Espaco.s6),
             SaBotao.primario(

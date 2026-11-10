@@ -7,10 +7,11 @@ import '../core/app_routes.dart';
 import '../core/dependencias.dart';
 import '../core/formatos.dart';
 import '../core/tema.dart';
-import '../data/dados_mock.dart';
 import '../model/barbeiro.dart';
 import '../model/corte.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
+import '../widgets/mensagem.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
 
@@ -21,12 +22,16 @@ class AgendarView extends StatelessWidget {
 
   Future<void> _confirmar(BuildContext context) async {
     final ctrl = g<AgendamentoController>();
-    final novo = await ctrl.confirmar();
+    final erro = await ctrl.confirmar();
     if (!context.mounted) return;
+    if (erro != null) {
+      mostrarMensagem(context, erro, erro: true);
+      return;
+    }
     Navigator.pushReplacementNamed(
       context,
       AppRoutes.confirmacao,
-      arguments: novo,
+      arguments: ctrl.confirmado,
     );
   }
 
@@ -148,7 +153,13 @@ class _EscolhaBarbeiro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final barbeiros = g<BarbeiroController>().barbeiros;
+    return DadosAoVivo<List<Barbeiro>>(
+      consulta: g<BarbeiroController>().observar,
+      construtor: _opcoes,
+    );
+  }
+
+  Widget _opcoes(BuildContext context, List<Barbeiro> barbeiros) {
     final corte = ctrl.corte;
     bool faz(Barbeiro b) => corte == null || b.cortes.contains(corte.id);
     final algumIndisponivel = !barbeiros.every(faz);
@@ -227,23 +238,26 @@ class _EscolhaCorte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Corte> cortes = ctrl.barbeiro == null
-        ? g<CorteController>().todos
-        : g<BarbeiroController>().cortesDe(ctrl.barbeiro!);
-
-    return Wrap(
-      spacing: Espaco.s2,
-      runSpacing: Espaco.s2,
-      children: [
-        for (final c in cortes)
-          ChoiceChip(
-            label: Text(
-              '${c.nome.toUpperCase()} · ${Formatos.preco(c.preco)}',
-            ),
-            selected: ctrl.corte?.id == c.id,
-            onSelected: (sel) => ctrl.escolherCorte(sel ? c : null),
-          ),
-      ],
+    return DadosAoVivo<List<Corte>>(
+      consulta: g<CorteController>().observar,
+      construtor: (context, cortes) {
+        final barbeiro = ctrl.barbeiro;
+        return Wrap(
+          spacing: Espaco.s2,
+          runSpacing: Espaco.s2,
+          children: [
+            for (final c in cortes)
+              if (barbeiro == null || barbeiro.cortes.contains(c.id))
+                ChoiceChip(
+                  label: Text(
+                    '${c.nome.toUpperCase()} · ${Formatos.preco(c.preco)}',
+                  ),
+                  selected: ctrl.corte?.id == c.id,
+                  onSelected: (sel) => ctrl.escolherCorte(sel ? c : null),
+                ),
+          ],
+        );
+      },
     );
   }
 }
@@ -325,28 +339,35 @@ class _EscolhaHora extends StatelessWidget {
       return const Text('Escolhe o barbeiro e o dia.', style: Estilos.bodySm);
     }
 
-    final livres = DadosMock.horarios
-        .where((h) => ctrl.horarioLivre(barbeiro, dia, h))
-        .toList();
-    if (livres.isEmpty) {
-      return const Text(
-        'Agenda lotada nesse dia. Tenta outro.',
-        style: Estilos.bodySm,
-      );
-    }
+    return DadosAoVivo<Set<int>>(
+      // A chave refaz a consulta quando muda o barbeiro ou o dia.
+      key: ValueKey('${barbeiro.id}-$dia'),
+      consulta: () => ctrl.horasOcupadas(barbeiro, dia),
+      construtor: (context, ocupadas) {
+        final livres = AgendamentoController.horarios
+            .where((h) => ctrl.horarioLivre(barbeiro, dia, h, ocupadas))
+            .toList();
+        if (livres.isEmpty) {
+          return const Text(
+            'Agenda lotada nesse dia. Tenta outro.',
+            style: Estilos.bodySm,
+          );
+        }
 
-    return Wrap(
-      spacing: Espaco.s2,
-      runSpacing: Espaco.s2,
-      children: [
-        for (final h in livres)
-          ChoiceChip(
-            key: ValueKey('hora-$h'),
-            label: Text('${h.toString().padLeft(2, '0')}:00'),
-            selected: ctrl.hora == h,
-            onSelected: (_) => ctrl.escolherHora(h),
-          ),
-      ],
+        return Wrap(
+          spacing: Espaco.s2,
+          runSpacing: Espaco.s2,
+          children: [
+            for (final h in livres)
+              ChoiceChip(
+                key: ValueKey('hora-$h'),
+                label: Text('${h.toString().padLeft(2, '0')}:00'),
+                selected: ctrl.hora == h,
+                onSelected: (_) => ctrl.escolherHora(h),
+              ),
+          ],
+        );
+      },
     );
   }
 }

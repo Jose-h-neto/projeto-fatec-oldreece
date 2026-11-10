@@ -29,5 +29,30 @@ class Barbeiro {
     required this.cortes,
   });
 
+  factory Barbeiro.fromMap(String id, Map<String, dynamic> dados) => Barbeiro(
+    id: id,
+    nome: dados['nome'] as String,
+    foto: dados['foto'] as String,
+    especialidade: dados['especialidade'] as String,
+    bio: dados['bio'] as String,
+    frase: dados['frase'] as String,
+    estrelas: dados['estrelas'] as int,
+    anosExperiencia: dados['anosExperiencia'] as int,
+    diasAtendimento: List<int>.from(dados['diasAtendimento'] as List),
+    cortes: List<String>.from(dados['cortes'] as List),
+  );
+
+  Map<String, dynamic> toMap() => {
+    'nome': nome,
+    'foto': foto,
+    'especialidade': especialidade,
+    'bio': bio,
+    'frase': frase,
+    'estrelas': estrelas,
+    'anosExperiencia': anosExperiencia,
+    'diasAtendimento': diasAtendimento,
+    'cortes': cortes,
+  };
+
   bool atendeNo(DateTime dia) => diasAtendimento.contains(dia.weekday);
 }

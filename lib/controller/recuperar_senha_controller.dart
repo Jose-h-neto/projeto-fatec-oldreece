@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/dependencias.dart';
+import '../core/erros.dart';
 import 'auth_controller.dart';
 
 class RecuperarSenhaController extends ChangeNotifier {
@@ -11,22 +12,24 @@ class RecuperarSenhaController extends ChangeNotifier {
   /// E-mail para onde as instruções foram enviadas (null = ainda não enviou).
   String? emailEnviado;
 
-  /// Simula o envio das instruções de redefinição. Retorna a mensagem de
-  /// erro, ou `null` se deu certo.
+  /// Pede ao Firebase o e-mail de redefinição. Retorna a mensagem de erro, ou
+  /// `null` se deu certo. Por segurança, o Firebase não revela se o e-mail tem
+  /// conta, então um e-mail sem cadastro também conta como sucesso.
   Future<String?> recuperar(String email) async {
-    if (_auth.buscar(email) == null) {
-      return 'Não achamos conta com esse e-mail.';
-    }
-
     carregando = true;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    String? erro;
+    try {
+      await _auth.recuperarSenha(email);
+      emailEnviado = email.trim();
+    } on Exception catch (e) {
+      erro = mensagemDeErro(e);
+    }
 
     carregando = false;
-    emailEnviado = email.trim();
     notifyListeners();
-    return null;
+    return erro;
   }
 
   void reiniciar() {

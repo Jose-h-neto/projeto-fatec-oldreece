@@ -24,15 +24,47 @@ class _CadastrarUsuarioViewState extends State<CadastrarUsuarioView> {
   final _nome = TextEditingController();
   final _email = TextEditingController();
   final _telefone = TextEditingController();
+  final _cep = TextEditingController();
+  final _bairro = TextEditingController();
+  final _cidade = TextEditingController();
   final _senha = TextEditingController();
   final _confirmacao = TextEditingController();
 
   @override
   void dispose() {
-    for (final c in [_nome, _email, _telefone, _senha, _confirmacao]) {
+    for (final c in [
+      _nome,
+      _email,
+      _telefone,
+      _cep,
+      _bairro,
+      _cidade,
+      _senha,
+      _confirmacao,
+    ]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  String _digitos(String valor) => valor.replaceAll(RegExp(r'\D'), '');
+
+  /// Com o CEP completo, consulta o ViaCEP e preenche bairro e cidade. Os dois
+  /// campos continuam editáveis, para o cadastro não depender da API.
+  Future<void> _buscarCep(String valor) async {
+    final cep = _digitos(valor);
+    if (cep.length != 8) return;
+
+    final erro = await ctrl.buscarCep(cep);
+    // Ignora a resposta se o CEP mudou enquanto a consulta estava em andamento.
+    if (!mounted || _digitos(_cep.text) != cep) return;
+    if (erro != null) {
+      mostrarMensagem(context, erro, erro: true);
+      return;
+    }
+
+    _bairro.text = ctrl.endereco!.bairro;
+    _cidade.text = ctrl.endereco!.cidade;
   }
 
   Future<void> _cadastrar() async {
@@ -43,6 +75,9 @@ class _CadastrarUsuarioViewState extends State<CadastrarUsuarioView> {
       nome: _nome.text,
       email: _email.text,
       telefone: _telefone.text,
+      cep: _cep.text,
+      bairro: _bairro.text,
+      cidade: _cidade.text,
       senha: _senha.text,
     );
     if (!mounted) return;
@@ -111,6 +146,33 @@ class _CadastrarUsuarioViewState extends State<CadastrarUsuarioView> {
                           teclado: TextInputType.phone,
                           validador: Validadores.telefone,
                           autofill: const [AutofillHints.telephoneNumber],
+                        ),
+                        const SizedBox(height: Espaco.s4),
+                        CampoTexto(
+                          controller: _cep,
+                          rotulo: 'CEP',
+                          icone: Icons.location_on_outlined,
+                          teclado: TextInputType.number,
+                          validador: Validadores.cep,
+                          aoMudar: _buscarCep,
+                          autofill: const [AutofillHints.postalCode],
+                        ),
+                        if (ctrl.buscandoCep) const LinearProgressIndicator(),
+                        const SizedBox(height: Espaco.s4),
+                        CampoTexto(
+                          controller: _bairro,
+                          rotulo: 'Bairro',
+                          icone: Icons.holiday_village_outlined,
+                          validador: (v) =>
+                              Validadores.obrigatorio(v, 'bairro'),
+                        ),
+                        const SizedBox(height: Espaco.s4),
+                        CampoTexto(
+                          controller: _cidade,
+                          rotulo: 'Cidade',
+                          icone: Icons.location_city_outlined,
+                          validador: (v) =>
+                              Validadores.obrigatorio(v, 'cidade'),
                         ),
                         const SizedBox(height: Espaco.s4),
                         CampoTexto(

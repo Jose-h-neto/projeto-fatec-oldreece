@@ -1,8 +1,9 @@
-import '../model/barbeiro.dart';
-import '../model/corte.dart';
+import 'package:old_reece/model/barbeiro.dart';
+import 'package:old_reece/model/corte.dart';
 
-/// Dados estáticos (mockados) da barbearia.
-abstract class DadosMock {
+/// Catálogo da barbearia: é o conteúdo das coleções `barbeiros` e `cortes` do
+/// Firestore e também o que os testes colocam no banco falso.
+abstract class DadosTeste {
   static const cortes = <Corte>[
     Corte(
       id: 'high_fade',
@@ -195,7 +196,4 @@ abstract class DadosMock {
 
   static Barbeiro barbeiro(String id) =>
       barbeiros.firstWhere((b) => b.id == id);
-
-  /// Horários de funcionamento (almoço ao meio-dia).
-  static const horarios = [9, 10, 11, 13, 14, 15, 16, 17, 18];
 }

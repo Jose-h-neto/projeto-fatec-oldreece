@@ -1,21 +1,31 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import '../data/dados_mock.dart';
+import '../core/dependencias.dart';
 import '../model/corte.dart';
 
 class CorteController extends ChangeNotifier {
-  final List<Corte> todos = DadosMock.cortes;
+  final _db = g<FirebaseFirestore>();
 
   /// Filtro por categoria do catálogo (null = todos).
   CategoriaCorte? categoria;
 
-  List<Corte> get cortes => categoria == null
-      ? todos
-      : todos.where((c) => c.categoria == categoria).toList();
+  /// Cortes da coleção `cortes`, atualizados em tempo real.
+  Stream<List<Corte>> observar() => _db
+      .collection('cortes')
+      .orderBy('ordem')
+      .snapshots()
+      .map(
+        (consulta) => consulta.docs
+            .map((doc) => Corte.fromMap(doc.id, doc.data()))
+            .toList(),
+      );
 
-  List<Corte> get destaques => todos.where((c) => c.destaque).toList();
+  List<Corte> filtrar(List<Corte> cortes) => categoria == null
+      ? cortes
+      : cortes.where((c) => c.categoria == categoria).toList();
 
-  void filtrar(CategoriaCorte? nova) {
+  void escolherCategoria(CategoriaCorte? nova) {
     categoria = nova;
     notifyListeners();
   }

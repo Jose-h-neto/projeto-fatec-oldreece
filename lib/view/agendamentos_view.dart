@@ -6,13 +6,14 @@ import '../core/dependencias.dart';
 import '../core/formatos.dart';
 import '../core/tema.dart';
 import '../model/agendamento.dart';
+import '../widgets/dados_ao_vivo.dart';
 import '../widgets/hud.dart';
 import '../widgets/mensagem.dart';
 import '../widgets/painel.dart';
 import '../widgets/sa_botao.dart';
 
-/// Funcionalidade: minha agenda (ListView) — próximos horários com opção de
-/// cancelar e o histórico com avaliações.
+/// Funcionalidade: minha agenda (ListView), lida em tempo real do Firestore —
+/// próximos horários com opção de cancelar e o histórico com avaliações.
 class AgendamentosView extends StatelessWidget {
   const AgendamentosView({super.key});
 
@@ -20,11 +21,11 @@ class AgendamentosView extends StatelessWidget {
   Widget build(BuildContext context) {
     final ctrl = g<AgendamentoController>();
 
-    return ListenableBuilder(
-      listenable: ctrl,
-      builder: (context, _) {
-        final proximos = ctrl.proximos;
-        final historico = ctrl.historico;
+    return DadosAoVivo<List<Agendamento>>(
+      consulta: ctrl.observar,
+      construtor: (context, lista) {
+        final proximos = ctrl.proximos(lista);
+        final historico = ctrl.historico(lista);
 
         return ListView(
           padding: const EdgeInsets.all(Espaco.s4),
@@ -43,7 +44,7 @@ class AgendamentosView extends StatelessWidget {
               ),
             ],
             for (final a in proximos) ...[
-              _ItemAgendamento(a),
+              _ItemAgendamento(a, context),
               const SizedBox(height: Espaco.s3),
             ],
             const SizedBox(height: Espaco.s6),
@@ -51,7 +52,7 @@ class AgendamentosView extends StatelessWidget {
             if (historico.isEmpty)
               const Text('Teu histórico aparece aqui.', style: Estilos.bodySm),
             for (final a in historico) ...[
-              _ItemAgendamento(a),
+              _ItemAgendamento(a, context),
               const SizedBox(height: Espaco.s3),
             ],
           ],
@@ -64,21 +65,31 @@ class AgendamentosView extends StatelessWidget {
 class _ItemAgendamento extends StatelessWidget {
   final Agendamento agendamento;
 
-  const _ItemAgendamento(this.agendamento);
+  /// Context da lista: o item pode sair da tela assim que o cancelamento chega
+  /// pelo stream, antes de a mensagem ser mostrada.
+  final BuildContext contextoLista;
 
-  Future<void> _cancelar(BuildContext context) async {
+  const _ItemAgendamento(this.agendamento, this.contextoLista);
+
+  Future<void> _cancelar() async {
+    final context = contextoLista;
     final ok = await confirmar(
       context,
       titulo: 'Cancelar horário?',
       mensagem:
-          '${agendamento.corte.nome} com ${agendamento.barbeiro.nome}, '
+          '${agendamento.corteNome} com ${agendamento.barbeiroNome}, '
           '${Formatos.dataHora(agendamento.data)}.',
       rotuloConfirmar: 'Cancelar horário',
       perigo: true,
     );
-    if (!ok || !context.mounted) return;
-    g<AgendamentoController>().cancelar(agendamento);
-    mostrarMensagem(context, 'Horário cancelado. A cadeira foi liberada.');
+    if (!ok) return;
+    final erro = await g<AgendamentoController>().cancelar(agendamento);
+    if (!context.mounted) return;
+    mostrarMensagem(
+      context,
+      erro ?? 'Horário cancelado. A cadeira foi liberada.',
+      erro: erro != null,
+    );
   }
 
   @override
@@ -96,7 +107,7 @@ class _ItemAgendamento extends StatelessWidget {
             children: [
               Opacity(
                 opacity: cancelado ? 0.5 : 1,
-                child: FotoMoldura(a.barbeiro.foto, tamanho: 52),
+                child: FotoMoldura(a.barbeiroFoto, tamanho: 52),
               ),
               const SizedBox(width: Espaco.s3),
               Expanded(
@@ -114,7 +125,7 @@ class _ItemAgendamento extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${a.corte.nome} com ${a.barbeiro.nome}',
+                      '${a.corteNome} com ${a.barbeiroNome}',
                       style: Estilos.bodySm,
                     ),
                   ],
@@ -132,7 +143,7 @@ class _ItemAgendamento extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton(
                 style: TextButton.styleFrom(foregroundColor: Cores.health),
-                onPressed: () => _cancelar(context),
+                onPressed: _cancelar,
                 child: const Text('CANCELAR'),
               ),
             ),

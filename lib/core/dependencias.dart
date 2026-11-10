@@ -1,4 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
+import 'package:http/http.dart' as http;
 
 import '../controller/agendamento_controller.dart';
 import '../controller/auth_controller.dart';
@@ -10,10 +13,24 @@ import '../controller/login_controller.dart';
 import '../controller/perfil_controller.dart';
 import '../controller/recuperar_senha_controller.dart';
 import '../controller/sobre_controller.dart';
+import '../service/viacep_service.dart';
 
 final g = GetIt.instance;
 
-void configurarDependencias() {
+/// Os parâmetros permitem trocar o acesso à rede e ao Firebase nos testes.
+void configurarDependencias({
+  http.Client? clienteHttp,
+  FirebaseAuth? auth,
+  FirebaseFirestore? firestore,
+}) {
+  g.registerSingleton<FirebaseAuth>(auth ?? FirebaseAuth.instance);
+  g.registerSingleton<FirebaseFirestore>(
+    firestore ?? FirebaseFirestore.instance,
+  );
+  g.registerSingleton<ViaCepService>(
+    ViaCepService(clienteHttp ?? http.Client()),
+  );
+
   // AuthController primeiro: os outros dependem dele.
   g.registerSingleton<AuthController>(AuthController());
 

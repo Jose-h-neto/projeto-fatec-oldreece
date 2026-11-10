@@ -4,7 +4,11 @@ abstract class Validadores {
   static final _email = RegExp(r'^[\w.+-]+@[\w-]+(\.[\w-]+)+$');
 
   static const tamanhoMinimoNome = 3;
-  static const tamanhoMinimoSenha = 6;
+  static const tamanhoMinimoSenha = 8;
+
+  static final _maiuscula = RegExp(r'\p{Lu}', unicode: true);
+  static final _minuscula = RegExp(r'\p{Ll}', unicode: true);
+  static final _especial = RegExp(r'[^\p{L}\p{N}\s]', unicode: true);
 
   static String? obrigatorio(String? valor, String campo) {
     if (valor == null || valor.trim().isEmpty) {
@@ -27,6 +31,15 @@ abstract class Validadores {
     if (vazio != null) return vazio;
     if (valor!.length < tamanhoMinimoSenha) {
       return 'A senha precisa de pelo menos $tamanhoMinimoSenha caracteres.';
+    }
+    if (!_maiuscula.hasMatch(valor)) {
+      return 'A senha precisa de pelo menos uma letra maiúscula.';
+    }
+    if (!_minuscula.hasMatch(valor)) {
+      return 'A senha precisa de pelo menos uma letra minúscula.';
+    }
+    if (!_especial.hasMatch(valor)) {
+      return 'A senha precisa de pelo menos um caractere especial, tipo @ ou !.';
     }
     return null;
   }
@@ -53,6 +66,15 @@ abstract class Validadores {
     final digitos = valor!.replaceAll(RegExp(r'\D'), '');
     if (digitos.length < 10 || digitos.length > 11) {
       return 'Telefone com DDD, tipo (11) 91234-5678.';
+    }
+    return null;
+  }
+
+  static String? cep(String? valor) {
+    final vazio = obrigatorio(valor, 'CEP');
+    if (vazio != null) return vazio;
+    if (valor!.replaceAll(RegExp(r'\D'), '').length != 8) {
+      return 'O CEP tem 8 números, tipo 01001-000.';
     }
     return null;
   }

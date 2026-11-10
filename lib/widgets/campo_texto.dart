@@ -14,6 +14,7 @@ class CampoTexto extends StatelessWidget {
   final VoidCallback? aoAlternarSenha;
   final bool habilitado;
   final bool somenteLeitura;
+  final ValueChanged<String>? aoMudar;
   final ValueChanged<String>? aoEnviar;
   final Iterable<String>? autofill;
 
@@ -30,6 +31,7 @@ class CampoTexto extends StatelessWidget {
     this.aoAlternarSenha,
     this.habilitado = true,
     this.somenteLeitura = false,
+    this.aoMudar,
     this.aoEnviar,
     this.autofill,
   });
@@ -44,6 +46,7 @@ class CampoTexto extends StatelessWidget {
       obscureText: senha && !senhaVisivel,
       enabled: habilitado,
       readOnly: somenteLeitura,
+      onChanged: aoMudar,
       onFieldSubmitted: aoEnviar,
       autofillHints: autofill,
       decoration: InputDecoration(

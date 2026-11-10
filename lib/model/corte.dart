@@ -26,4 +26,25 @@ class Corte {
     required this.categoria,
     this.destaque = false,
   });
+
+  factory Corte.fromMap(String id, Map<String, dynamic> dados) => Corte(
+    id: id,
+    nome: dados['nome'] as String,
+    descricao: dados['descricao'] as String,
+    imagem: dados['imagem'] as String,
+    preco: dados['preco'] as int,
+    duracaoMin: dados['duracaoMin'] as int,
+    categoria: CategoriaCorte.values.byName(dados['categoria'] as String),
+    destaque: dados['destaque'] as bool? ?? false,
+  );
+
+  Map<String, dynamic> toMap() => {
+    'nome': nome,
+    'descricao': descricao,
+    'imagem': imagem,
+    'preco': preco,
+    'duracaoMin': duracaoMin,
+    'categoria': categoria.name,
+    'destaque': destaque,
+  };
 }
